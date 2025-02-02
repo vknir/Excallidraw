@@ -3,10 +3,12 @@ import jwt from "jsonwebtoken";
 import {
   LoginValidator,
   SignUpValidator,
+  RoomValidator,
 } from "@repo/common-validation/validation";
 import { JWT_SECRET } from "@repo/backend-common/config";
 import { authMiddleware } from "./middleware/index";
 import { prisma } from "@repo/db/client";
+import bcrypt from "bcrypt";
 
 const app = express();
 const port = 3000;
@@ -25,20 +27,29 @@ app.post("/signup", async (req, res) => {
   try {
     SignUpValidator.parse({ username, password, email });
 
-    // isnert into db
-    const result = await prisma.user.create({
-      data: {
-        username,
-        password,
-        email,
-      },
+    bcrypt.hash(password, 5, async (err, hash) => {
+      if (err) throw err;
+
+      try {
+        const result = await prisma.user.create({
+          data: {
+            username,
+            password: hash,
+            email,
+          },
+        });
+
+        if (result.id) {
+          const token = jwt.sign({ id: result.id }, JWT_SECRET);
+          res.status(200).json({ token });
+        } else {
+          throw "Error while insering data";
+        }
+      } catch (e) {
+        console.log(e);
+        res.status(401).json({ message: "username taken" });
+      }
     });
-    if (result) {
-      const token = jwt.sign({ id: result.id }, JWT_SECRET);
-      res.status(200).json({ token });
-    } else {
-      throw "Error while insering data";
-    }
   } catch (e) {
     console.log(e);
     res.status(401).json({ message: "Wrong credentail type" });
@@ -49,12 +60,20 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     LoginValidator.parse({ username, password });
-    // db insert
+    
 
-    const result = await prisma.user.findFirst({ where: { username } });
-    if (result) {
-      const token = jwt.sign({ id: result.id }, JWT_SECRET);
-      res.status(200).json({ token });
+    
+    const dbUser = await prisma.user.findUnique({ where: { username } });
+    if (dbUser?.id) {
+      bcrypt.compare(password, dbUser.password, (err, result) => {
+        if (err) throw "Cannot hash password";
+        if (result) {
+          const token = jwt.sign({ id: dbUser.id }, JWT_SECRET);
+          res.status(200).json({ token });
+        } else {
+          res.status(401).json({ message: "wrong cred" });
+        }
+      });
     } else {
       throw "No user found";
     }
@@ -64,4 +83,25 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/create", authMiddleware, (req, res) => {});
+app.post("/create", authMiddleware, async (req, res) => {
+  const { name } = req.body;
+  try {
+    RoomValidator.parse({ name });
+
+    const userId = req.userId;
+    if (userId) {
+      const result = await prisma.room.create({
+        data: {
+          slug: name,
+          adminId: userId,
+        },
+      });
+
+      if (result)
+        res.status(200).json({ message: "room created successfully" });
+      else res.status(500).json({ message: "room could not be created" });
+    }
+  } catch (e) {
+    res.status(401).json({ message: "room code invalid" });
+  }
+});

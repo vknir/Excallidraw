@@ -17,10 +17,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@repo/db": "workspace:*",
+    "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.8",
+    "bcrypt": "^5.1.1",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "@repo/db":"workspace:*"
+    "jsonwebtoken": "^9.0.2"
   }
 }

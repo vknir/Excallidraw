@@ -21,7 +21,7 @@ export async function authMiddleware(
         where: { id: decoded.id },
       });
       if (result) {
-        req.body.id = result.id;
+        req.userId = result.id;
         return next();
       } else {
         res.status(401).json({ message: "Invalid token" });
