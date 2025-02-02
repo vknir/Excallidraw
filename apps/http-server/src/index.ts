@@ -60,9 +60,7 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     LoginValidator.parse({ username, password });
-    
 
-    
     const dbUser = await prisma.user.findUnique({ where: { username } });
     if (dbUser?.id) {
       bcrypt.compare(password, dbUser.password, (err, result) => {
@@ -90,16 +88,22 @@ app.post("/create", authMiddleware, async (req, res) => {
 
     const userId = req.userId;
     if (userId) {
-      const result = await prisma.room.create({
-        data: {
-          slug: name,
-          adminId: userId,
-        },
-      });
+      try {
+        const result = await prisma.room.create({
+          data: {
+            slug: name,
+            adminId: userId,
+          },
+        });
 
-      if (result)
-        res.status(200).json({ message: "room created successfully" });
-      else res.status(500).json({ message: "room could not be created" });
+        if (result)
+          res
+            .status(200)
+            .json({ message: "room created successfully", roomId: result.id });
+        else res.status(411).json({ message: "room could not be created" });
+      } catch (e) {
+        res.status(401).json({ message: "Room already exists" });
+      }
     }
   } catch (e) {
     res.status(401).json({ message: "room code invalid" });

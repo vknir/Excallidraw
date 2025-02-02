@@ -17,7 +17,7 @@ model User {
 }
 
 model Room {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   slug      String   @unique
   adminId   String
   admin     User     @relation(fields: [adminId], references: [id])
@@ -29,7 +29,7 @@ model Chats {
   id      Int    @id @default(autoincrement())
   message String
   room    Room   @relation(fields: [roomId], references: [id])
-  roomId  String
+  roomId  Int
   userId  String
   user    User   @relation(fields: [userId], references: [id])
 }

@@ -12,6 +12,6 @@ export const LoginValidator = z.object({
 })
 
 export const RoomValidator = z.object({
-    name: z.string().length(4),
+    name: z.string().min(3),
     
 })
